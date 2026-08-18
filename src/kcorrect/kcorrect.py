@@ -876,11 +876,12 @@ class KcorrectSDSS(Kcorrect):
     input for absmag() and fit_coeffs() and fit_coeffs_asinh(), which
     adjusts from the SDSS system to the AB system.
 """
-    def __init__(self, responses=['sdss_u0', 'sdss_g0', 'sdss_r0', 'sdss_i0',
-                                  'sdss_z0'], templates=None,
+    def __init__(self, responses: list[str] = None, templates=None,
                  responses_out=None, responses_map=None,
                  redshift_range=[0., 2.], nredshift=4000,
                  abcorrect=True, cosmo=None):
+        if responses is None:
+            responses = [f"SLOAN/SDSS.{f}" for f in "ugriz"]
 
         # Initatialize using Kcorrect initialization
         super().__init__(responses=responses, templates=templates,
@@ -1036,12 +1037,14 @@ class KcorrectGST(Kcorrect):
     system. However, there is no change applied to the 2MASS or
     or GALEX inputs.
     """
-    def __init__(self, responses=['galex_FUV', 'galex_NUV', 'sdss_u0', 'sdss_g0',
-                                  'sdss_r0', 'sdss_i0', 'sdss_z0', 'twomass_J',
-                                  'twomass_H', 'twomass_Ks'],
-                 templates=None, responses_out=None, responses_map=None,
-                 redshift_range=[0., 2.], nredshift=4000,
+    def __init__(self, responses: list = None, templates=None, responses_out=None,
+                 responses_map=None, redshift_range=[0., 2.], nredshift=4000,
                  abcorrect=False, cosmo=None):
+
+        if responses is None:
+            responses = ["GALEX/GALEX.FUV", "GALEX/GALEX.NUV",
+                         *[f"SLOAN/SDSS.{f}" for f in "ugriz"],
+                         "2MASS/2MASS.J", "2MASS/2MASS.H", "2MASS/2MASS.Ks"]
 
         # Initatialize using Kcorrect initialization
         super().__init__(responses=responses, templates=templates,
@@ -1092,11 +1095,10 @@ class KcorrectGST(Kcorrect):
             z(AB,2.5m) = z(database, 2.5m) + 0.040
 
         fit_coeffs() and absmag() call this on their inputs if abcorrect is True.
-"""
+        """
         if ivar is not None:
-            (smaggies,
-             sivar) = kcorrect.utils.sdss_ab_correct(maggies=maggies[..., 2:7],
-                                                     ivar=ivar[..., 2:7])
+            smaggies, sivar = kcorrect.utils.sdss_ab_correct(maggies=maggies[..., 2:7],
+                                                             ivar=ivar[..., 2:7])
             maggies[..., 2:7] = smaggies
             ivar[..., 2:7] = sivar
             return (maggies, ivar)

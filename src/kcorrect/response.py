@@ -487,7 +487,7 @@ class Response(object):
         """Returns numpy dtype for SED"""
         response_dtype = np.dtype([('wave', type(self.wave[0]), self.nwave),
                                    ('response', type(self.response[0]), self.nwave)])
-        return(response_dtype)
+        return response_dtype
 
     def set_interp(self):
         """Sets attribute interp to interpolation function"""
@@ -566,7 +566,7 @@ class Response(object):
         """
         infilename = os.fspath(filename)
 
-        if(os.path.exists(infilename) is False):
+        if not os.path.exists(infilename):
             raise ValueError("No response file: {f}".format(f=infilename))
         dat = astropy.io.ascii.read(infilename, format='fixed_width')
         isort = np.argsort(dat['lambda'])
@@ -634,19 +634,19 @@ class Response(object):
 
         If the bandpass is outside the range of the solar model, 0 is returned.
         """
-        if(sed is None):
-            if((wave is None) or (flux is None)):
+        if sed is None:
+            if wave is None or flux is None:
                 raise ValueError("must specify sed, or wave and flux")
             wave = np.float32(wave)
             flux = np.float32(flux)
-            if(wave.ndim != 1):
+            if wave.ndim != 1:
                 raise ValueError("wave must be 1-D array")
-            if(flux.shape[-1] != wave.shape[0]):
+            if flux.shape[-1] != wave.shape[0]:
                 raise ValueError("last axis of flux must match wave")
-            if(flux.ndim > 2):
+            if flux.ndim > 2:
                 raise ValueError("flux must be 1-D or 2-D array")
             sed_wave = wave
-            if(flux.ndim == 1):
+            if flux.ndim == 1:
                 nsed = 1
             else:
                 nsed = flux.shape[0]
@@ -660,12 +660,12 @@ class Response(object):
         # Find SED wavelengths to integrate over
         keep = (sed_wave >= self.wave[0]) & (sed_wave <= self.wave[-1])
         ikeep = np.where(keep)[0]
-        if(len(ikeep) == 0):
-            return(0.)
+        if len(ikeep) == 0:
+            return 0.
 
-        if(ikeep[0] > 0):
+        if ikeep[0] > 0:
             keep[ikeep[0] - 1] = 1
-        if(ikeep[-1] < len(sed_wave) - 1):
+        if ikeep[-1] < len(sed_wave) - 1:
             keep[ikeep[-1] + 1] = 1
 
         # Find full grid of wavelengths for integration
@@ -677,7 +677,7 @@ class Response(object):
 
         # Perform integration for numerator
         numer = np.zeros(nsed, dtype=np.float32)
-        if(nsed == 1):
+        if nsed == 1:
             integrand_numer = integrate_sed * integrate_response * integrate_wave
             numer = integrate.trapezoid(integrate_wave, np.squeeze(integrand_numer))
         else:
@@ -695,7 +695,7 @@ class Response(object):
         # projection for the AB source.
         maggies = np.squeeze(numer / denom)
 
-        return(maggies)
+        return maggies
 
     def set_lambda_eff(self):
         """Set effective wavelength
@@ -746,7 +746,7 @@ class Response(object):
 
         # Find lower
         iupper = np.where(iresponse > 0.5)[0][0]
-        if(iupper == 0):
+        if iupper == 0:
             fwhm_low = wave[iupper]
         else:
             ilower = iupper - 1
@@ -755,7 +755,7 @@ class Response(object):
 
         # Find upper
         ilower = np.where(iresponse >= 0.5)[0][-1]
-        if(ilower == len(iresponse) - 1):
+        if ilower == len(iresponse) - 1:
             fwhm_high = wave[-1]
         else:
             iupper = ilower + 1
@@ -778,7 +778,7 @@ class Response(object):
         If the response function is outside the model wavelength range,
         solar_magnitude is set to None.
         """
-        if(self.solar_sed is None):
+        if self.solar_sed is None:
             sunfile = os.path.join(kcorrect.KCORRECT_DIR, 'data', 'basel',
                                    'lcbsun.ori')
             info, wave, flux = kcorrect.utils.read_basel(filename=sunfile)
@@ -796,7 +796,7 @@ class Response(object):
 
         solar_maggies = self.project(sed=self.solar_sed)
 
-        if(solar_maggies > 0):
+        if solar_maggies > 0:
             self.solar_magnitude = - 2.5 * np.log10(solar_maggies)
         else:
             self.solar_magnitude = None
@@ -814,7 +814,7 @@ class Response(object):
         If the response function is outside the model wavelength range,
         vega2ab is set to None.
         """
-        if(self.vega_sed is None):
+        if self.vega_sed is None:
             vegafile = os.path.join(kcorrect.KCORRECT_DIR, 'data', 'basel',
                                     'lcbvega.ori')
             info, wave, flux = kcorrect.utils.read_basel(filename=vegafile)
@@ -832,7 +832,7 @@ class Response(object):
             self.vega_sed.info = info
 
         vega_maggies = self.project(sed=self.vega_sed)
-        if(vega_maggies > 0):
+        if vega_maggies > 0:
             self.vega2ab = - 2.5 * np.log10(vega_maggies)
         else:
             self.vega2ab = None

@@ -94,7 +94,7 @@ class SED(object):
         self.interpolate = interpolate
         self.info = dict()
         self.binimage = False
-        if(self.filename is not None):
+        if self.filename is not None:
             self.fromfits(filename, ext=ext)
             return
         self._setup()
@@ -103,17 +103,16 @@ class SED(object):
     def _setup(self):
         """Set up after restframe_wave and restframe_flux are read in"""
         self.redshift = 0.
-        if((self.restframe_wave is not None) &
-           (self.restframe_flux is not None)):
+        if (self.restframe_wave is not None) and (self.restframe_flux is not None):
             self.nwave = len(self.restframe_wave)
-            if(len(self.restframe_flux.shape) == 1):
+            if len(self.restframe_flux.shape) == 1:
                 self.restframe_flux = self.restframe_flux.reshape(1, self.nwave)
             else:
                 self.restframe_flux = self.restframe_flux
             self.nsed = self.restframe_flux.shape[0]
         self.wave = self.restframe_wave
         self.flux = self.restframe_flux
-        if(self.interpolate):
+        if self.interpolate:
             self.set_interp()
         return
 
@@ -122,11 +121,11 @@ class SED(object):
         sed_dtype = np.dtype([('wave', np.float32, self.nwave),
                               ('flux', np.float32, (self.nsed,
                                                     self.nwave))])
-        return(sed_dtype)
+        return sed_dtype
 
     def set_interp(self):
         """Sets attribute interp to interpolation function"""
-        if((self.wave is None) | (self.flux is None)):
+        if self.wave is None or self.flux is None:
             self.interp = None
             return
         self.interp = interpolate.interp1d(self.wave, self.flux,
@@ -162,14 +161,14 @@ class SED(object):
 """
         sed_hdus = fits.open(filename)
         self.binimage = ('FLUX' in sed_hdus) & ('WAVE' in sed_hdus)
-        if(self.binimage):
+        if self.binimage:
             self.restframe_wave = sed_hdus['WAVE'].data
             self.restframe_flux = sed_hdus['FLUX'].data
         else:
             sed = sed_hdus[ext].data
             self.restframe_wave = sed['wave']
             self.restframe_flux = sed['flux']
-        if(len(self.restframe_flux.shape) > 1):
+        if len(self.restframe_flux.shape) > 1:
             nsed = self.restframe_flux.shape[-2]
         else:
             nsed = 1
@@ -206,7 +205,7 @@ class SED(object):
         If binimage is set for this object, instead write
         two HDUs.
 """
-        if(self.binimage):
+        if self.binimage:
             hdul = fits.HDUList()
             whdu = fits.ImageHDU(self.restframe_wave, name='WAVE')
             hdul.append(whdu)
@@ -228,19 +227,17 @@ class SED(object):
 
         Parameters
         ----------
-
         redshift : np.float32
             redshift to shift to
 
         Notes
         -----
-
         Conserves bolometric integral of flux.
-"""
+        """
         self.wave = self.restframe_wave * (1. + redshift)
         self.flux = self.restframe_flux / (1. + redshift)
         self.redshift = redshift
-        if(self.interpolate):
+        if self.interpolate:
             self.set_interp()
         return
 
@@ -249,23 +246,20 @@ class SED(object):
 
         Parameters
         ----------
-
         indx : np.int32 or ndarray of np.int32
             index of template(s) to plot
-
         wavelim : list or ndarray of np.float32
             [2] wavelength limits of plot
 
         Notes
         -----
-
         Plots log of wavelength and log of lambda * flux_lambda.
-"""
-        if(indx is None):
+        """
+        if indx is None:
             indx = np.arange(self.nsed, dtype=int)
 
         indxs = np.int32(indx)
-        if(indxs.ndim == 0):
+        if indxs.ndim == 0:
             indxs = np.array([indxs], dtype=np.int32)
 
         for i in indxs:
@@ -274,7 +268,7 @@ class SED(object):
                      np.log10(self.wave[ok] * self.flux[i, ok]),
                      linewidth=1, alpha=0.5)
 
-        if(wavelim is not None):
+        if wavelim is not None:
             iwave = np.where((self.wave > wavelim[0]) &
                              (self.wave < wavelim[1]))[0]
             plt.xlim(np.log10(np.float32(wavelim)))

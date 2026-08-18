@@ -131,11 +131,11 @@ class Kcorrect(kcorrect.fitter.Fitter):
                  redshift_range=[0., 2.], nredshift=4000,
                  abcorrect=False, cosmo=None, interpolate_templates=True):
 
-        if(filename is not None):
+        if filename is not None:
             self.fromfits(filename=filename)
         else:
             # Read in templates
-            if(templates is None):
+            if templates is None:
                 tfilename = os.path.join(kcorrect.KCORRECT_DIR, 'data',
                                          'templates',
                                          'kcorrect-default-v4.fits')
@@ -151,19 +151,19 @@ class Kcorrect(kcorrect.fitter.Fitter):
             self.set_Amatrix()
 
             # Set up the output responses
-            if(responses_out is None):
+            if responses_out is None:
                 responses_out = self.responses
-            if(responses_map is None):
+            if responses_map is None:
                 responses_map = self.responses
 
-            if(len(responses_map) != len(responses_out)):
+            if len(responses_map) != len(responses_out):
                 raise ValueError("responses_map must have the same number of elements as responses_out")
 
             self.responses_out = responses_out
             self.responses_map = responses_map
 
             # Set up the AmatrixOut for the output responses
-            if(self.responses_out == self.responses):
+            if self.responses_out == self.responses:
                 self.AmatrixOut = self.Amatrix
             else:
                 self.AmatrixOut = self._calc_Amatrix(responses=self.responses_out)
@@ -177,12 +177,7 @@ class Kcorrect(kcorrect.fitter.Fitter):
                 raise ValueError("responses_map must contain only responses defined in responses")
 
         # Initialize cosmology used for derived properties and absmag
-        if(cosmo is not None):
-            self.cosmo = cosmo
-        else:
-            self.cosmo = astropy.cosmology.Planck18
-
-        return
+        self.cosmo = cosmo or astropy.cosmology.Planck18
 
     def derived(self, redshift=None, coeffs=None, band_shift=0., distance=None):
         """Return derived quantities based on coefficients
@@ -267,7 +262,7 @@ class Kcorrect(kcorrect.fitter.Fitter):
         m300 = coeffs.dot(self.templates.m300) * dfactor
         m1000 = coeffs.dot(self.templates.m1000) * dfactor
 
-        if(array):
+        if array:
             ok = mremain > 0.
             metallicity = np.zeros(len(redshift), dtype=np.float32)
             b50 = np.zeros(len(redshift), dtype=np.float32)
@@ -278,7 +273,7 @@ class Kcorrect(kcorrect.fitter.Fitter):
             b300[ok] = m300[ok] / intsfh[ok]
             b1000[ok] = m1000[ok] / intsfh[ok]
         else:
-            if(mremain > 0.):
+            if mremain > 0.:
                 metallicity = metals / mremain
                 b50 = m50 / intsfh
                 b300 = m300 / intsfh
@@ -290,7 +285,7 @@ class Kcorrect(kcorrect.fitter.Fitter):
                 b1000 = np.float32(0.)
 
         f = kcorrect.response.ResponseDict()
-        if(array):
+        if array:
             zero_redshift = np.zeros(len(redshift), dtype=np.float32)
         else:
             zero_redshift = np.float32(0.)
@@ -304,7 +299,7 @@ class Kcorrect(kcorrect.fitter.Fitter):
 
         mtol = np.zeros(rmaggies_solar.shape, dtype=np.float32)
         ok = rmaggies_solar > 0.
-        if(array):
+        if array:
             mtol[ok] = (np.outer(mremain,
                                  np.ones(len(self.responses), dtype=np.float32))[ok] /
                         rmaggies_solar[ok])
@@ -320,7 +315,7 @@ class Kcorrect(kcorrect.fitter.Fitter):
         outdict['b1000'] = b1000
         outdict['metallicity'] = metallicity
 
-        return(outdict)
+        return outdict
 
     def derived_mc(self, redshift=None, coeffs_mc=None, band_shift=0., distance=None):
         """Return derived quantities based on coefficients
@@ -381,7 +376,7 @@ class Kcorrect(kcorrect.fitter.Fitter):
             coeffs_curr = coeffs_mc[..., imc]
             derived = self.derived(redshift=redshift, band_shift=band_shift,
                                    distance=distance, coeffs=coeffs_curr)
-            if(outdict is None):
+            if outdict is None:
                 outdict = dict()
                 for k in derived:
                     shp = derived[k].shape
@@ -389,7 +384,7 @@ class Kcorrect(kcorrect.fitter.Fitter):
                     outdict[k] = np.zeros(shpmc, dtype=np.float32)
             for k in derived:
                 outdict[k][..., imc] = derived[k]
-        return(outdict)
+        return outdict
 
     def reconstruct_out(self, redshift=None, coeffs=None, band_shift=0.):
         """Reconstruct output maggies associated with coefficients
@@ -412,8 +407,8 @@ class Kcorrect(kcorrect.fitter.Fitter):
         maggies : ndarray of np.float32
             AB maggies in each output band
 """
-        return(self._reconstruct(Amatrix=self.AmatrixOut, redshift=redshift,
-                                 coeffs=coeffs, band_shift=band_shift))
+        return self._reconstruct(Amatrix=self.AmatrixOut, redshift=redshift,
+                                 coeffs=coeffs, band_shift=band_shift)
 
     def kcorrect(self, redshift=None, coeffs=None, band_shift=0.):
         """Return K-correction in all bands
@@ -464,7 +459,7 @@ class Kcorrect(kcorrect.fitter.Fitter):
                 kcorrect = - 2.5 * np.log10(maggies_in[self.imap] /
                                             maggies_out)
 
-        return(kcorrect)
+        return kcorrect
 
     def absmag(self, maggies=None, ivar=None, redshift=None, coeffs=None,
                band_shift=0., distance=None, reconstruct=False, limit=False,
@@ -569,7 +564,7 @@ class Kcorrect(kcorrect.fitter.Fitter):
 
         absmag = np.zeros(use_maggies.shape, dtype=np.float32)
 
-        if(array):
+        if array:
             dm = np.outer(dm, np.ones(len(self.responses_out),
                                       dtype=np.float32))
             absmag[gd] = mags[gd] - dm[gd] - k[gd]
@@ -578,7 +573,7 @@ class Kcorrect(kcorrect.fitter.Fitter):
 
         absmag[bd] = - 9999.
 
-        if(reconstruct):
+        if reconstruct:
             omaggies = self.reconstruct_out(redshift=redshift, coeffs=coeffs,
                                             band_shift=band_shift)
             gd = np.where(omaggies > 0.)
@@ -586,13 +581,13 @@ class Kcorrect(kcorrect.fitter.Fitter):
             omags = np.zeros(omaggies.shape, dtype=np.float32)
             omags[gd] = - 2.5 * np.log10(omaggies[gd])
             absmag_reconstruct = np.zeros(omaggies.shape, dtype=np.float32) - 9999.
-            if(array):
+            if array:
                 absmag_reconstruct[gd] = omags[gd] - dm[gd] - k[gd]
             else:
                 absmag_reconstruct[gd] = omags[gd] - dm - k[gd]
             absmag_reconstruct[bd] = - 9999.
 
-        if(limit):
+        if limit:
             absmag_limit = np.zeros(use_maggies.shape, dtype=np.float32) - 9999.
             gd = np.where(use_ivar > 0.)
             bd = np.where(use_ivar <= 0.)
@@ -600,23 +595,23 @@ class Kcorrect(kcorrect.fitter.Fitter):
             lmags = np.zeros(use_maggies.shape, dtype=np.float32)
             lmags[gd] = - 2.5 * np.log10(1. / np.sqrt(use_ivar[gd]))
 
-            if(array):
+            if array:
                 absmag_limit[gd] = lmags[gd] - dm[gd] - k[gd]
             else:
                 absmag_limit[gd] = lmags[gd] - dm - k[gd]
             absmag_limit[bd] = - 9999.
 
         return_list = [absmag]
-        if(reconstruct):
+        if reconstruct:
             return_list.append(absmag_reconstruct)
-        if(limit):
+        if limit:
             return_list.append(absmag_limit)
-        if(kcorrect):
+        if kcorrect:
             return_list.append(k)
-        if(len(return_list) == 1):
-            return(return_list[0])
+        if len(return_list) == 1:
+            return return_list[0]
         else:
-            return(tuple(return_list))
+            return tuple(return_list)
 
     def absmag_mc(self, maggies_mc=None, ivar=None, redshift=None,
                   coeffs_mc=None, band_shift=0., distance=None, reconstruct=False,
@@ -625,79 +620,67 @@ class Kcorrect(kcorrect.fitter.Fitter):
 
         Parameters
         ----------
-
         redshift : ndarray of np.float32, or np.float32
             [ngalaxy] redshift(s) for K-correction
-
         maggies_mc : ndarray of np.float32
             [ngalaxy, nbands, mc] fluxes of each band in maggies
-
         ivar : ndarray of np.float32
             [ngalaxy, nbands] inverse variance of each band
-
         coeffs_mc : ndarray of np.float32
             [ngalaxy, ntemplates, mc] coefficients for each template for each object
-
         band_shift : np.float32
             shift to apply for output responses
-
         distance : ndarray of np.float32 or np.float32
             [ngalaxy] distance in Mpc (or None)
-
         reconstruct : bool
             if set, return absmag_reconstruct
-
         kcorrect : bool
             if set, return kcorrect
 
         Returns
         -------
-
         absmag : ndarray of np.float32
             [ngalaxy, nbands, mc] AB absolute magnitude in each band for each object
-
         absmag_reconstruct : ndarray of np.float32
             [ngalaxy, nbands, mc] reconstructed AB absolute magnitude from SED fits (if reconstruct set)
-
         kcorrect : ndarray of np.float32
             [ngalaxy, nbands, mc] K-corrections used (if kcorrect is True)
 
         Notes
         -----
-
         Relies on multiple calls to kcorrect.kcorrect.Kcorrect.absmag() method.
-"""
+        """
         mc = coeffs_mc.shape[-1]
         absmag_mc = np.zeros(maggies_mc.shape, dtype=np.float32)
-        if(reconstruct):
+        if reconstruct:
             absmag_reconstruct_mc = np.zeros(maggies_mc.shape, dtype=np.float32)
-        if(kcorrect):
+        if kcorrect:
             kcorrect_mc = np.zeros(maggies_mc.shape, dtype=np.float32)
         for imc in np.arange(mc, dtype=np.int32):
             out = self.absmag(redshift=redshift, maggies=maggies_mc[..., imc],
                               ivar=ivar, coeffs=coeffs_mc[..., imc], band_shift=band_shift,
                               distance=distance, reconstruct=reconstruct, kcorrect=kcorrect)
-            if((reconstruct is False) & (kcorrect is False)):
+            if not (reconstruct or kcorrect):
                 absmag_mc[..., imc] = out
             else:
                 absmag_mc[..., imc] = out[0]
                 iout = 1
-                if(reconstruct):
+                if reconstruct:
                     absmag_reconstruct_mc[..., imc] = out[iout]
                     iout += 1
-                if(kcorrect):
+                if kcorrect:
                     kcorrect_mc[..., imc] = out[iout]
                     iout += 1
 
         return_list = [absmag_mc]
-        if(reconstruct):
+        if reconstruct:
             return_list.append(absmag_reconstruct_mc)
-        if(kcorrect):
+        if kcorrect:
             return_list.append(kcorrect_mc)
-        if(len(return_list) == 1):
-            return(return_list[0])
+        if len(return_list) == 1:
+            return return_list[0]
         else:
-            return(tuple(return_list))
+            return tuple(return_list)
 
         raise RuntimeError("Should not reach this point")
 
@@ -913,25 +896,20 @@ class KcorrectSDSS(Kcorrect):
 
         Parameters
         ----------
-
         maggies : ndarray of np.float32
             array of fluxes in standard SDSS system
-
         ivar : ndarray of np.float32
             inverse variances in standard SDSS system (optional)
 
         Returns
         -------
-
         ab_maggies : ndarray of np.float32
             array of fluxes converted to AB
-
         ab_ivar : ndarray of np.float32
             inverse variances converted to AB (if ivar input)
 
         Notes
         -----
-
         Calls kcorrect.utils.sdss_ab_correct(), which does the following:
 
         Uses the AB conversions produced by D. Eisenstein, in his
@@ -950,11 +928,11 @@ class KcorrectSDSS(Kcorrect):
         if(ivar is not None):
             maggies, ivar = kcorrect.utils.sdss_ab_correct(maggies=maggies,
                                                            ivar=ivar)
-            return(maggies, ivar)
+            return (maggies, ivar)
         else:
             maggies = kcorrect.utils.sdss_ab_correct(maggies=maggies,
                                                      ivar=ivar)
-            return(maggies)
+            return maggies
 
     def fit_coeffs_asinh(self, redshift=None, mag=None, mag_err=None,
                          extinction=None):
@@ -962,28 +940,22 @@ class KcorrectSDSS(Kcorrect):
 
         Parameters
         ----------
-
         redshift : np.float32 or ndarray of np.float32
             [N] or scalar redshift(s)
-
         mag : ndarray of np.float32
             [N, 5] or [5] asinh magnitudes of each SDSS band
-
         mag_err : ndarray of np.float32
             [N, 5] or [5] inverse variance of each band
-
         extinction : ndarray of np.float32
             [N, 5] or [5] Galactic extinction in each band
 
         Returns
         -------
-
         coeffs : ndarray of np.float32
             coefficients for each template
 
         Notes
         -----
-
         Converts mag, mag_err, and extinction to extinction-corrected
         maggies and ivar, and then (if abcorrect is True) calls
         to_ab() method to create AB maggies and ivar.
@@ -992,17 +964,16 @@ class KcorrectSDSS(Kcorrect):
         returned as an [nredshift, ntemplate] array.
 
         Otherwise coeffs is returned as an [ntemplate] array.
-"""
-        if(redshift is None):
+        """
+        if redshift is None:
             raise TypeError("Must specify redshift to fit coefficients")
 
-        (maggies,
-         ivar) = kcorrect.utils.sdss_asinh_to_maggies(mag=mag,
-                                                      mag_err=mag_err,
-                                                      extinction=extinction)
+        maggies, ivar = kcorrect.utils.sdss_asinh_to_maggies(mag=mag,
+                                                             mag_err=mag_err,
+                                                             extinction=extinction)
 
         coeffs = self.fit_coeffs(redshift=redshift, maggies=maggies, ivar=ivar)
-        return(coeffs)
+        return coeffs
 
 
 class KcorrectGST(Kcorrect):
@@ -1010,73 +981,52 @@ class KcorrectGST(Kcorrect):
 
     Parameters
     ----------
-
     abcorrect : bool
         correct maggies to AB (default True)
-
     templates : list of kcorrect.template.SED
         templates to use (if None uses v4 default template set)
-
     responses : list of str
         names of input responses to base SED on (default to FNugrizJHK)
-
     responses_out : list of str
         output responses for K-corrections (default to "responses")
-
     responses_map : list of str
         input responses to use for K-corrections (default to "responses")
-
     redshift_range : list of np.float32
         minimum and maximum redshifts (default [0., 2.])
-
     nredshift : int or np.int32
         number of redshifts in interpolation grid (default 4000)
-
     cosmo : astropy.cosmology.FLRW-like object
         object with distmod() method (default Planck18)
 
     Attributes
     ----------
-
     abcorrect : bool
         correct maggies to AB
-
     Amatrix : scipy.interpolate.interp1d object
         interpolation function for each template and input response
-
     AmatrixOut : scipy.interpolate.interp1d object
         interpolation function for each template and output response
-
     cosmo : astropy.cosmology.FLRW-like object
         object with luminosity_distance() method
-
     imap : ndarray of np.int32
         for each responses_map element, its corresponding index in responses
-
     nredshift : int or np.int32
         number of redshifts in interpolation grid
-
     redshift_range : list of np.float32
         minimum and maximum redshifts
-
     redshifts : ndarray of np.float32
         redshifts in grid
-
     responses : list of str
         [Nin] names of input responses to use
-
     responses_map : list of str
         [Nout] input responses to use for K-corrections
-
     responses_out : list of str
         [Nout] output responses for K-corrections
-
     templates : kcorrect.template.Template object
         templates to use
 
     Notes
     -----
-
     The 'responses' input defaults to ['galex_FUV', 'galex_NUV', 'sdss_u0', 'sdss_g0', 'sdss_r0', 'sdss_i0', 'sdss_z0', 'twomass_J', 'twomass_H', 'twomass_Ks']
 
     abcorrect is by default False and the input maggies are assumed to
@@ -1085,7 +1035,7 @@ class KcorrectGST(Kcorrect):
     fit_coeffs_asinh(), which adjusts from the SDSS system to the AB
     system. However, there is no change applied to the 2MASS or
     or GALEX inputs.
-"""
+    """
     def __init__(self, responses=['galex_FUV', 'galex_NUV', 'sdss_u0', 'sdss_g0',
                                   'sdss_r0', 'sdss_i0', 'sdss_z0', 'twomass_J',
                                   'twomass_H', 'twomass_Ks'],
@@ -1143,15 +1093,15 @@ class KcorrectGST(Kcorrect):
 
         fit_coeffs() and absmag() call this on their inputs if abcorrect is True.
 """
-        if(ivar is not None):
+        if ivar is not None:
             (smaggies,
              sivar) = kcorrect.utils.sdss_ab_correct(maggies=maggies[..., 2:7],
                                                      ivar=ivar[..., 2:7])
             maggies[..., 2:7] = smaggies
             ivar[..., 2:7] = sivar
-            return(maggies, ivar)
+            return (maggies, ivar)
         else:
             smaggies = kcorrect.utils.sdss_ab_correct(maggies=maggies[..., 2:7],
                                                       ivar=ivar[..., 2:7])
             maggies[..., 2:7] = smaggies
-            return(maggies)
+            return maggies

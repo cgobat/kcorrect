@@ -75,7 +75,7 @@ class Fitter(object):
 
     def _interpolate_Amatrix(self, redshifts=None, A=None):
         """Interpolate the A matrix to an interpolator"""
-        return(interpolate.interp1d(redshifts, A, axis=0))
+        return interpolate.interp1d(redshifts, A, axis=0)
 
     def _calc_Amatrix(self, responses=None):
         """Create an A matrix and return it (don't set attribute)"""
@@ -91,7 +91,7 @@ class Fitter(object):
         for iz, z in enumerate(self.redshifts):
             self.templates.set_redshift(redshift=z)
             for ir, response in enumerate(responses):
-                if(self.templates.interpolate):
+                if self.templates.interpolate:
                     rmatrix[iz, ir, :] = f[response].project(sed=self.templates)
                 else:
                     # project SEDs in groups if there is a very large # of them
@@ -99,7 +99,7 @@ class Fitter(object):
                     for ised in np.arange(0, self.templates.nsed, nchunk, dtype=np.int32):
                         ised_start = ised
                         ised_end = ised + nchunk
-                        if(ised_end > self.templates.nsed):
+                        if ised_end > self.templates.nsed:
                             ised_end = self.templates.nsed
                         rmatrix[iz, ir, ised_start:ised_end] = f[response].project(wave=self.templates.wave,
                                                                                    flux=self.templates.flux[ised_start:ised_end, :])
@@ -110,7 +110,7 @@ class Fitter(object):
         # Return templates to z=0
         self.templates.set_redshift(redshift=0.)
 
-        return(Amatrix)
+        return Amatrix
 
     def to_ab(self, maggies=None, ivar=None):
         """Convert input maggies to AB
@@ -141,10 +141,10 @@ class Fitter(object):
 
         fit_coeffs() calls this on its inputs.
 """
-        if(ivar is not None):
-            return(maggies, ivar)
+        if ivar is not None:
+            return (maggies, ivar)
         else:
-            return(maggies)
+            return maggies
 
     def set_Amatrix(self):
         """Set Amatrix, interpolator for the design matrix"""
@@ -197,12 +197,12 @@ class Fitter(object):
         try:
             A = inverr_matrix * self.Amatrix(redshift)
         except ValueError:
-            if(mc == 0):
-                return(default_zeros)
+            if mc == 0:
+                return default_zeros
             else:
                 coeffs_mc = np.zeros((self.templates.nsed, mc),
                                      dtype=np.float32)
-                return(default_zeros, coeffs_mc)
+                return (default_zeros, coeffs_mc)
         b = maggies * inverr
 
         try:
@@ -211,8 +211,8 @@ class Fitter(object):
             coeffs, rnorm = optimize.nnls(np.float64(A), np.float64(b),
                                           maxiter=A.shape[1] * 100)
 
-        if(mc == 0):
-            return(coeffs)
+        if mc == 0:
+            return coeffs
         else:
             coeffs_mc = np.zeros((self.templates.nsed, mc), dtype=np.float32)
             igd = np.where(inverr > 0)[0]
@@ -229,7 +229,7 @@ class Fitter(object):
                                                          maxiter=A.shape[1] * 100)
                 coeffs_mc[:, imc] = tmp_coeffs_mc
 
-            return(coeffs, coeffs_mc, maggies_mc)
+            return (coeffs, coeffs_mc, maggies_mc)
 
     def _process_inputs(self, redshift=None, maggies=None, ivar=None,
                         coeffs=None):
@@ -282,74 +282,74 @@ class Fitter(object):
 
         Applies this class's to_ab() function on maggies and ivar to
         convert to return AB maggies.
-"""
-        if(redshift is None):
+        """
+        if redshift is None:
             raise ValueError("redshift must be defined")
 
         redshift = np.float32(redshift)
 
-        if(len(redshift.shape) == 0):
+        if len(redshift.shape) == 0:
             array = False
             n = 1
-        elif(len(redshift.shape) == 1):
+        elif len(redshift.shape) == 1:
             array = True
             n = redshift.size
         else:
             raise TypeError("redshift must be 0- or 1-dimensional")
 
-        if(maggies is not None):
+        if maggies is not None:
             maggies = np.float32(maggies)
-            if(array):
-                if(len(maggies.shape) != 2):
+            if array:
+                if len(maggies.shape) != 2:
                     raise ValueError("maggies must be 2-dimensional if redshift is 1-dimensional")
-                if(maggies.shape[0] != n):
+                if maggies.shape[0] != n:
                     raise ValueError("maggies must have values for each redshift")
-                if(maggies.shape[1] != len(self.responses)):
+                if maggies.shape[1] != len(self.responses):
                     raise ValueError("maggies must have one value for each band")
             else:
-                if(len(maggies.shape) != 1):
+                if len(maggies.shape) != 1:
                     raise ValueError("maggies must be 1-dimensional if redshift is 0-dimensional")
-                if(maggies.shape[0] != len(self.responses)):
+                if maggies.shape[0] != len(self.responses):
                     raise ValueError("maggies must have values for each band")
 
-        if(ivar is not None):
+        if ivar is not None:
             ivar = np.float32(ivar)
-            if(array):
-                if(len(ivar.shape) != 2):
+            if array:
+                if len(ivar.shape) != 2:
                     raise ValueError("ivar must be 2-dimensional if redshift is 1-dimensional")
-                if(ivar.shape[0] != n):
+                if ivar.shape[0] != n:
                     raise ValueError("ivar must have values for each redshift")
-                if(ivar.shape[1] != len(self.responses)):
+                if ivar.shape[1] != len(self.responses):
                     raise ValueError("ivar must have values for each band")
             else:
-                if(len(ivar.shape) != 1):
+                if len(ivar.shape) != 1:
                     raise ValueError("ivar must be 1-dimensional if redshift is 0-dimensional")
-                if(ivar.shape[0] != len(self.responses)):
+                if ivar.shape[0] != len(self.responses):
                     raise ValueError("ivar must have values for each band")
 
-        if(coeffs is not None):
+        if coeffs is not None:
             coeffs = np.float32(coeffs)
-            if(array):
-                if(len(coeffs.shape) != 2):
+            if array:
+                if len(coeffs.shape) != 2:
                     raise ValueError("coeffs must be 2-dimensional if redshift is 1-dimensional")
-                if(coeffs.shape[0] != n):
+                if coeffs.shape[0] != n:
                     raise ValueError("ivar must have values for each redshift")
-                if(coeffs.shape[1] != self.templates.nsed):
+                if coeffs.shape[1] != self.templates.nsed:
                     raise ValueError("ivar must have values for each template")
             else:
-                if(len(coeffs.shape) != 1):
+                if len(coeffs.shape) != 1:
                     raise ValueError("coeffs must be 1-dimensional if redshift is 0-dimensional")
-                if(coeffs.shape[0] != self.templates.nsed):
+                if coeffs.shape[0] != self.templates.nsed:
                     raise ValueError("ivar must have values for each band")
 
-        if(self.abcorrect):
-            if(maggies is not None):
-                if(ivar is not None):
+        if self.abcorrect:
+            if maggies is not None:
+                if ivar is not None:
                     maggies, ivar = self.to_ab(maggies=maggies, ivar=ivar)
                 else:
                     maggies = self.to_ab(maggies=maggies)
 
-        return(array, n, redshift, maggies, ivar, coeffs)
+        return (array, n, redshift, maggies, ivar, coeffs)
 
     def fit_coeffs(self, redshift=None, maggies=None, ivar=None, mc=0):
         """Fit coefficients
@@ -398,8 +398,8 @@ class Fitter(object):
         iterations for scipy.optimize.nnls was not enough. Under these
         conditions, this code tries a much larger number of
         iterations. If that still fails, you will receive a traceback.
-"""
-        if(redshift is None):
+        """
+        if redshift is None:
             raise TypeError("Must specify redshift to fit coefficients")
 
         # Check a bunch of things about the input arrays
@@ -408,8 +408,8 @@ class Fitter(object):
                                         ivar=ivar)
 
         # Call single
-        if(n == 1):
-            if(mc == 0):
+        if n == 1:
+            if mc == 0:
                 coeffs = self._fit_coeffs(redshift=np.squeeze(redshift),
                                           maggies=np.squeeze(maggies),
                                           ivar=np.squeeze(ivar),
@@ -419,24 +419,24 @@ class Fitter(object):
                                                                  maggies=np.squeeze(maggies),
                                                                  ivar=np.squeeze(ivar),
                                                                  mc=mc)
-            if(array):
+            if array:
                 coeffs = coeffs.reshape(1, len(coeffs))
-                if(mc > 0):
+                if mc > 0:
                     coeffs_mc = coeffs_mc.reshape(1, len(coeffs), mc)
                     maggies_mc = maggies_mc.reshape(1, len(maggies), mc)
 
-            if(mc > 0):
-                return(coeffs, coeffs_mc, maggies_mc)
+            if mc > 0:
+                return (coeffs, coeffs_mc, maggies_mc)
             else:
-                return(coeffs)
+                return coeffs
 
         # Loop for multiple
         coeffs = np.zeros((n, self.templates.nsed), dtype=np.float32)
-        if(mc > 0):
+        if mc > 0:
             coeffs_mc = np.zeros((n, self.templates.nsed, mc), dtype=np.float32)
             maggies_mc = np.zeros((n, len(self.responses), mc), dtype=np.float32)
         for i, r in enumerate(redshift):
-            if(mc == 0):
+            if mc == 0:
                 coeffs[i, :] = self._fit_coeffs(redshift=r, maggies=maggies[i, :],
                                                 ivar=ivar[i, :])
             else:
@@ -448,10 +448,10 @@ class Fitter(object):
                 coeffs_mc[i, :, :] = tmp_coeffs_mc
                 maggies_mc[i, :, :] = tmp_maggies_mc
 
-        if(mc == 0):
-            return(coeffs)
+        if mc == 0:
+            return coeffs
         else:
-            return(coeffs, coeffs_mc, maggies_mc)
+            return (coeffs, coeffs_mc, maggies_mc)
 
     def _reconstruct(self, Amatrix=None, redshift=None, coeffs=None,
                      band_shift=0.):
@@ -500,7 +500,7 @@ class Fitter(object):
         except ValueError:
             raise ValueError("Redshift out of range for interpolating A matrix!")
 
-        if(array):
+        if array:
             maggies = np.einsum('ijk,ki->ij', A,
                                 coeffs.T.reshape(self.templates.nsed, n))
         else:
@@ -510,7 +510,7 @@ class Fitter(object):
         # AB source is not altered.
         maggies = maggies / (1. + band_shift)
 
-        return(maggies)
+        return maggies
 
     def reconstruct(self, redshift=None, coeffs=None, band_shift=0.):
         """Reconstruct AB maggies associated with coefficients
@@ -539,5 +539,5 @@ class Fitter(object):
         Returns AB maggies, but note that if to_ab() is non-trivial,
         these may not be directly comparable to the input maggies.
 """
-        return(self._reconstruct(Amatrix=self.Amatrix, redshift=redshift,
-                                 coeffs=coeffs, band_shift=band_shift))
+        return self._reconstruct(Amatrix=self.Amatrix, redshift=redshift,
+                                 coeffs=coeffs, band_shift=band_shift)

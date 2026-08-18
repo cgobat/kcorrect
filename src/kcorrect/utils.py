@@ -29,7 +29,7 @@ def sed_ab(wave=None):
     # Keeping cspeed in order unity units to avoid overflows
     cspeed = 2.99792   # speed of light in 10^{18} A / s
     ab = 3.631e-2 / wave**2 * cspeed
-    return(ab)
+    return ab
 
 
 def read_basel(filename=None):
@@ -109,7 +109,7 @@ def read_basel(filename=None):
     info['vturb'] = vturb
     info['xh'] = xh
 
-    return(info, wave, flux)
+    return (info, wave, flux)
 
 
 def sdss_ab_correct(maggies=None, ivar=None,
@@ -154,36 +154,36 @@ def sdss_ab_correct(maggies=None, ivar=None,
     Unless an alternative is specified with the abfix parameter.
 """
     maggies = np.float32(maggies)
-    if(ivar is not None):
+    if ivar is not None:
         ivar = np.float32(ivar)
 
-        if(maggies.shape != ivar.shape):
+        if maggies.shape != ivar.shape:
             raise("maggies and ivar must be the same shape")
 
     abfix = np.array(abfix, dtype=np.float32)
-    if(abfix.shape != (5,)):
+    if abfix.shape != (5,):
         raise("abfix must have 5 values")
     abfac = 10.**(- 0.4 * abfix)
 
-    if(maggies.ndim == 1):
-        if(maggies.size != 5):
+    if maggies.ndim == 1:
+        if maggies.size != 5:
             raise("sdss_ab_correct expects 5 SDSS maggies values (ugriz)")
         ab_maggies = maggies * abfac
-        if(ivar is not None):
+        if ivar is not None:
             ab_ivar = ivar / abfac**2
     else:
         ab_maggies = np.zeros(maggies.shape, dtype=np.float32)
         for i, cabfac in enumerate(abfac):
             ab_maggies[..., i] = maggies[..., i] * cabfac
-        if(ivar is not None):
+        if ivar is not None:
             ab_ivar = np.zeros(maggies.shape, dtype=np.float32)
             for i, cabfac in enumerate(abfac):
                 ab_ivar[..., i] = ivar[..., i] / cabfac**2
 
-    if(ivar is not None):
-        return(ab_maggies, ab_ivar)
+    if ivar is not None:
+        return ab_maggies, ab_ivar
     else:
-        return(ab_maggies)
+        return ab_maggies
 
 
 def error_floor(floor=None, maggies=None, ivar=None):
@@ -211,33 +211,33 @@ def error_floor(floor=None, maggies=None, ivar=None):
     maggies = np.array(maggies)
     ivar = np.array(ivar)
 
-    if(maggies.ndim == 1):
+    if maggies.ndim == 1:
         array = False
     else:
         array = True
 
-    if(maggies.shape[-1] != floor.shape[0]):
+    if maggies.shape[-1] != floor.shape[0]:
         raise("floor must have same number of responses as maggies")
 
-    if(maggies.shape != ivar.shape):
+    if maggies.shape != ivar.shape:
         raise("maggies and ivar must be same shape")
 
-    if(array):
+    if array:
         for i in np.arange(floor.size):
             iok = np.where(ivar[:, i] > 0.)[0]
-            if(len(iok) > 0):
+            if len(iok) > 0:
                 ferr = 1. / (np.abs(maggies[iok, i]) * np.sqrt(ivar[iok, i]))
                 ioklow = iok[np.where(ferr < floor[i])[0]]
                 ivar[ioklow, i] = 1. / (np.abs(maggies[ioklow, i]) *
                                         floor[i])**2
     else:
         for i in np.arange(floor.size):
-            if(ivar[i] > 0.):
+            if ivar[i] > 0.:
                 ferr = 1. / (np.abs(maggies[i]) * np.sqrt(ivar[i]))
-                if(ferr < floor[i]):
+                if ferr < floor[i]:
                     ivar[i] = 1. / (np.abs(maggies[i]) * floor[i])**2
 
-    return(ivar)
+    return ivar
 
 
 def sdss_asinh_to_maggies(mag=None, mag_err=None, extinction=None):
@@ -309,10 +309,10 @@ def sdss_asinh_to_maggies(mag=None, mag_err=None, extinction=None):
                            0.4 * np.log(10.) * mag_err[..., k])
             maggies_ivar[..., k] = 1. / maggies_err**2
 
-    if(mag_err is None):
-        return(maggies)
+    if mag_err is None:
+        return maggies
     else:
-        return(maggies, maggies_ivar)
+        return (maggies, maggies_ivar)
 
 
 def maggies2flambda(maggies=None, ivar=None, responses=None):
@@ -373,7 +373,7 @@ def maggies2flambda(maggies=None, ivar=None, responses=None):
             fivar = np.outer(np.ones(maggies.shape[0], dtype=np.float32),
                              1. / m2f**2) * ivar
 
-    if(ivar is not None):
-        return(wave, flambda, fivar)
+    if ivar is not None:
+        return (wave, flambda, fivar)
     else:
-        return(wave, flambda)
+        return (wave, flambda)

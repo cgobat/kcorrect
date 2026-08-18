@@ -54,7 +54,7 @@ def test_fits_response():
     f['sdss_u0'].tofits('tmp-response-write-and-read.fits')
 
     r = kcorrect.response.Response()
-    r.fromfits('tmp-response-write-and-read.fits')
+    r.load_fits('tmp-response-write-and-read.fits')
 
     assert(np.all(r.nwave == f['sdss_u0'].nwave))
     assert(np.all(r.wave == f['sdss_u0'].wave))

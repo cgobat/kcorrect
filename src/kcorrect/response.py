@@ -360,20 +360,17 @@ class ResponseDict(dict, metaclass=ResponseDictSingleton):
         """
         if response is None:
             raise ValueError("response must be an SVO filter ID or legacy alias")
-        if((response in self) & (reload is False)):
+        if response in self and not reload:
             return
 
         filter_id = SVO_FILTER_ALIASES.get(response)
         if filter_id is None:
             if "/" not in response:
-                raise ValueError(
-                    f"unknown response {response!r}; use an SVO filter ID "
-                    "or a legacy alias"
-                )
+                raise ValueError(f"unknown response {response!r}; use an SVO filter ID or a legacy alias")
             filter_id = response
 
-        self[response] = Response()
-        self[response].from_svo(filter_id=filter_id)
+        self[filter_id] = Response.from_svo(filter_id=filter_id)
+        print("Loaded response for filter", filter_id)
         return
 
 
@@ -453,8 +450,7 @@ class Response(object):
     """
 
     def __init__(self, filename=None, wave=None, response=None):
-        if((wave is not None) &
-           (response is not None)):
+        if wave is not None and response is not None:
             isort = np.argsort(wave)
             self.wave = wave[isort]
             self.response = response[isort]
@@ -472,12 +468,10 @@ class Response(object):
         self.fwhm = None
         self.fwhm_low = None
         self.fwhm_high = None
-        if(self.filename is not None):
-            self.fromdat(filename)
+        if self.filename is not None:
+            self.load_dat(filename)
         else:
-            if(self.wave is not None):
-                self.nwave = len(self.wave)
-                self._setup()
+            self._setup()
         return
 
     def _setup(self):
@@ -497,7 +491,7 @@ class Response(object):
 
     def set_interp(self):
         """Sets attribute interp to interpolation function"""
-        if((self.wave is None) | (self.response is None)):
+        if self.wave is None or self.response is None:
             self.interp = None
             return
         self.interp = interpolate.interp1d(self.wave, self.response,
@@ -506,17 +500,21 @@ class Response(object):
                                            fill_value=0.)
         return
 
-    def from_svo(self, filter_id=None):
+    @property
+    def nwave(self) -> int:
+        if self.wave is None:
+            return 0
+        return np.asanyarray(self.wave).size
+
+    @classmethod
+    def from_svo(cls, filter_id: str):
         """Read a response from the SVO Filter Profile Service.
 
         Parameters
         ----------
-
         filter_id : str
             Filter ID in the SVO form ``facility/instrument.filter``.
         """
-        if filter_id is None:
-            raise ValueError("filter_id must be specified")
 
         data = SvoFps.get_transmission_data(filter_id)
         wave = data["Wavelength"]
@@ -524,21 +522,19 @@ class Response(object):
             wave = u.Quantity(wave).to_value(u.Angstrom)
         else:
             wave = np.asarray(wave)
-        response = np.asarray(data["Transmission"])
+        if filter_id.startswith("GALEX") and data["Transmission"].unit == u.cm**2:
+            response = np.array(data["Transmission"].quantity / (1963.495*u.cm**2))
+        else:
+            response = data["Transmission"].quantity.value
 
         if len(wave) == 0:
             raise ValueError(f"SVO returned no transmission data for {filter_id}")
 
-        isort = np.argsort(wave)
-        self.nwave = len(wave)
-        self.wave = np.asarray(wave[isort])
-        self.response = np.asarray(response[isort])
-        self.filename = None
-        self.svo_filter_id = filter_id
-        self._setup()
-        return
+        instance = cls(filename=None, wave=wave, response=response)
+        instance.svo_filter_id = filter_id
+        return instance
 
-    def fromfits(self, filename=None, ext=1):
+    def load_fits(self, filename=None, ext=1):
         """Read response from FITS files
 
         Parameters
@@ -552,7 +548,6 @@ class Response(object):
         """
         response_hdulist = astropy.io.fits.open(filename)
         response = response_hdulist[ext].data[0]
-        self.nwave = len(response['wave'])
         isort = np.argsort(response['wave'])
         self.wave = response['wave'][isort]
         self.response = response['response'][isort]
@@ -561,27 +556,19 @@ class Response(object):
         self._setup()
         return
 
-    def fromdat(self, filename=None):
+    def load_dat(self, filename=None):
         """Read response from fixed_width file
 
         Parameters
         ----------
-
         filename : str
             input file name
-
-        Notes
-        -----
-
-        This method is retained for explicitly supplied custom response files.
-        Packaged response files are no longer used by kcorrect.
         """
         infilename = os.fspath(filename)
 
         if(os.path.exists(infilename) is False):
             raise ValueError("No response file: {f}".format(f=infilename))
         dat = astropy.io.ascii.read(infilename, format='fixed_width')
-        self.nwave = len(dat)
         isort = np.argsort(dat['lambda'])
         self.wave = dat['lambda'][isort]
         self.response = dat['pass'][isort]

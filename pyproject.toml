@@ -19,7 +19,8 @@ dependencies = [
     "matplotlib>=3.5.2", 
     "numpy>=1.18.1", 
     "scipy>=1.8.1", 
-    "astropy>=3.0.0", 
+    "astropy>=5.0.0", 
+    "astroquery>=0.4.11", 
 ]
 
 [project.urls]

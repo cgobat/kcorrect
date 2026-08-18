@@ -6,75 +6,351 @@
 
 
 import os
-import re
 
 import astropy.io.ascii
 import astropy.io.fits
 import astropy.table
+import astropy.units as u
 import numpy as np
 import scipy.integrate as integrate
 import scipy.interpolate as interpolate
 import scipy.optimize as optimize
+from astroquery.svo_fps import SvoFps
 
 import kcorrect
 import kcorrect.template
 import kcorrect.utils
 
 
-def all_responses(response_dir=os.path.join(kcorrect.KCORRECT_DIR, 'data',
-                                            'responses'),
-                  check_validity=False):
-    """List all responses available
-    
+SVO_FILTER_ALIASES = {
+    # "alhambra_768",
+    # "alhambra_799",
+    # "alhambra_830",
+    # "alhambra_861",
+    # "alhambra_892",
+    # "alhambra_923",
+    # "alhambra_954",
+    "alhambra_H": "CAHA/ALHAMBRA.H",
+    "alhambra_J": "CAHA/ALHAMBRA.J",
+    "alhambra_KS": "CAHA/ALHAMBRA.Ks",
+    # "alhambra_f365w",
+    # "alhambra_f396w",
+    # "alhambra_f427w",
+    # "alhambra_f458w",
+    # "alhambra_f489w",
+    # "alhambra_f520w",
+    # "alhambra_f551w",
+    # "alhambra_f582w",
+    # "alhambra_f613w",
+    # "alhambra_f644w",
+    # "alhambra_f675w",
+    # "alhambra_f706w",
+    # "alhambra_f737w",
+    # "alhambra_f768w",
+    # "alhambra_f799w",
+    # "alhambra_f830w",
+    # "alhambra_f861w",
+    # "alhambra_f892w",
+    # "alhambra_f923w",
+    # "alhambra_f954w",
+    # "bass_g",
+    # "bass_r",
+    "bessell_B": "Generic/Bessell.B",
+    "bessell_I": "Generic/Bessell.I",
+    "bessell_R": "Generic/Bessell.R",
+    "bessell_U": "Generic/Bessell.U",
+    "bessell_V": "Generic/Bessell.V",
+    # "bok_90prime_z",
+    # "cdfs_swire_U",
+    # "cdfs_swire_g",
+    # "cdfs_swire_i",
+    # "cdfs_swire_r",
+    # "cdfs_swire_z",
+    # "cfh12k_B",
+    # "cfh12k_I",
+    # "cfh12k_R",
+    # "cfh12k_V",
+    # "cfh12k_z",
+    "cfht_megacam_g": "CFHT/MegaCam.g",
+    "cfht_megacam_i": "CFHT/MegaCam.i",
+    "cfht_megacam_r": "CFHT/MegaCam.r",
+    "cfht_megacam_u": "CFHT/MegaCam.u",
+    "cfht_megacam_z": "CFHT/MegaCam.z",
+    # "clash_acs_f435w",
+    # "clash_acs_f475w",
+    # "clash_acs_f555w",
+    # "clash_acs_f606w",
+    # "clash_acs_f625w",
+    # "clash_acs_f775w",
+    # "clash_acs_f814w",
+    # "clash_acs_f850lp",
+    # "clash_wfc3_f105w",
+    # "clash_wfc3_f110w",
+    # "clash_wfc3_f125w",
+    # "clash_wfc3_f140w",
+    # "clash_wfc3_f160w",
+    # "clash_wfc3_f218w",
+    # "clash_wfc3_f225w",
+    # "clash_wfc3_f275w",
+    # "clash_wfc3_f300x",
+    # "clash_wfc3_f336w",
+    # "clash_wfc3_f390w",
+    # "clash_wfc3_f438w",
+    # "clash_wfc3_f475w",
+    # "clash_wfc3_f555w",
+    # "clash_wfc3_f606w",
+    # "clash_wfc3_f625w",
+    # "clash_wfc3_f775w",
+    # "clash_wfc3_f814w",
+    # "clash_wfc3_f850lp",
+    "ctio_mosaic_ii_B": "CTIO/MosaicII.B",
+    "ctio_mosaic_ii_Ic": "CTIO/MosaicII.I",
+    "ctio_mosaic_ii_Rc": "CTIO/MosaicII.R",
+    "ctio_mosaic_ii_Uj": "CTIO/MosaicII.U",
+    "ctio_mosaic_ii_V": "CTIO/MosaicII.V",
+    "ctio_mosaic_ii_g": "CTIO/MosaicII.gSDSS",
+    "ctio_mosaic_ii_i": "CTIO/MosaicII.iSDSS",
+    "ctio_mosaic_ii_r": "CTIO/MosaicII.rSDSS",
+    "ctio_mosaic_ii_u": "CTIO/MosaicII.uSDSS",
+    "ctio_mosaic_ii_z": "CTIO/MosaicII.zSDSS",
+    "decam_Y": "CTIO/DECam.Y",
+    "decam_g": "CTIO/DECam.g",
+    "decam_i": "CTIO/DECam.i",
+    "decam_r": "CTIO/DECam.r",
+    "decam_u": "CTIO/DECam.u",
+    "decam_z": "CTIO/DECam.z",
+    # "deep_B",
+    # "deep_I",
+    # "deep_R",
+    # "ediscs_B",
+    # "ediscs_I",
+    # "ediscs_V",
+    # "epsi_420m",
+    # "epsi_464m",
+    # "epsi_485m",
+    # "epsi_518m",
+    # "epsi_571m",
+    # "epsi_604m",
+    # "epsi_646m",
+    # "epsi_696m",
+    # "epsi_753m",
+    # "epsi_815m",
+    # "epsi_855m",
+    # "epsi_B",
+    # "epsi_I",
+    # "epsi_R",
+    # "epsi_U",
+    # "epsi_V",
+    "flamingos_H": "KPNO/Flamingos.H",
+    "flamingos_J": "KPNO/Flamingos.J",
+    "flamingos_Ks": "KPNO/Flamingos.Ks",
+    "FORS_B_ccd_atm": "Paranal/FORS1.ESO1034",
+    "FORS_I_ccd_atm": "Paranal/FORS1.ESO1037",
+    "FORS_V_ccd_atm": "Paranal/FORS1.ESO1035",
+    "FORS2_R_ccd_atm": "Paranal/FORS2.ESO1076",
+    "galex_FUV": "GALEX/GALEX.FUV",
+    "galex_NUV": "GALEX/GALEX.NUV",
+    # "gdds_B",
+    # "gdds_H",
+    # "gdds_I",
+    # "gdds_K",
+    # "gdds_R",
+    # "gdds_V",
+    # "gdds_z",
+    "goods_H_isaac_etc": "Paranal/ISAAC.H",
+    "goods_J_isaac_etc": "Paranal/ISAAC.Js",
+    "goods_Ks_isaac_etc": "Paranal/ISAAC.Ks",
+    # "goods_acs_f435w",
+    # "goods_acs_f606w",
+    # "goods_acs_f775w",
+    # "goods_acs_f850lp",
+    "hawki_Ks1": "Paranal/HAWKI.Ks",
+    # "herschel_pacs_100",
+    # "herschel_pacs_160",
+    # "herschel_pacs_70",
+    # "herschel_spire_250",
+    # "herschel_spire_350",
+    # "herschel_spire_500",
+    # "herschel_spire_ext_250",
+    # "herschel_spire_ext_350",
+    # "herschel_spire_ext_500",
+    "hst_acs_f814w": "HST/ACS_WFC.F814W",
+    # "iras_100",
+    # "iras_12",
+    # "iras_25",
+    # "iras_60",
+    # "jwst_f070w",
+    # "jwst_f090w",
+    # "jwst_f1000w",
+    # "jwst_f1130w",
+    # "jwst_f115w",
+    # "jwst_f1280w",
+    # "jwst_f140m",
+    # "jwst_f1500w",
+    # "jwst_f150w",
+    # "jwst_f162m",
+    # "jwst_f1800w",
+    # "jwst_f182m",
+    # "jwst_f200w",
+    # "jwst_f2100w",
+    # "jwst_f210m",
+    # "jwst_f250m",
+    # "jwst_f2550w",
+    # "jwst_f277w",
+    # "jwst_f300m",
+    # "jwst_f335m",
+    # "jwst_f356w",
+    # "jwst_f360m",
+    # "jwst_f410m",
+    # "jwst_f430m",
+    # "jwst_f444w",
+    # "jwst_f460m",
+    # "jwst_f480m",
+    # "jwst_f560w",
+    # "jwst_f770w",
+    # "lbc_blue_ufilter",
+    # "lbc_red_yfilter",
+    "lco_wirc_H": "LCO/WIRC.H",
+    "lco_wirc_J": "LCO/WIRC.J",
+    # "lco_wirc_Ks": "LCO/WIRC.Ks",
+    "mmt_megacam_g": "MMT/MegaCam.g_MMT",
+    "mmt_megacam_i": "MMT/MegaCam.i_MMT",
+    "mmt_megacam_r": "MMT/MegaCam.r_MMT",
+    "mmt_megacam_u": "MMT/MegaCam.u_MMT",
+    "mmt_megacam_z": "MMT/MegaCam.z_MMT",
+    # "moircs_K",
+    # "mzls_z",
+    # "ndwfs_Bw",
+    # "ndwfs_I",
+    # "ndwfs_K",
+    # "ndwfs_R",
+    # "newfirm_H",
+    # "newfirm_J",
+    # "newfirm_Ks",
+    # "palomar_K",
+    # SDSS aliases populated below
+    "SOFI_J_atm": "LaSilla/SOFI.J",
+    "SOFI_Ks_atm": "LaSilla/SOFI.Ks",
+    "sofia_hawc_bandA": "SOFIA/HAWC.A",
+    "sofia_hawc_bandB": "SOFIA/HAWC.B",
+    "sofia_hawc_bandC": "SOFIA/HAWC.C",
+    "sofia_hawc_bandD": "SOFIA/HAWC.D",
+    "sofia_hawc_bandE": "SOFIA/HAWC.E",
+    # "spitzer_irac_ch1",
+    # "spitzer_irac_ch2",
+    # "spitzer_irac_ch3",
+    # "spitzer_irac_ch4",
+    # "spitzer_mips_160",
+    # "spitzer_mips_24",
+    # "spitzer_mips_70",
+    "subaru_suprimecam_B": "Subaru/Suprime.B",
+    "subaru_suprimecam_Ic": "Subaru/Suprime.Ic_filter",
+    "subaru_suprimecam_Rc": "Subaru/Suprime.Rc_filter",
+    "subaru_suprimecam_V": "Subaru/Suprime.V",
+    "subaru_suprimecam_g": "Subaru/Suprime.g",
+    "subaru_suprimecam_i": "Subaru/Suprime.i",
+    "subaru_suprimecam_r": "Subaru/Suprime.r",
+    "subaru_suprimecam_z": "Subaru/Suprime.z",
+    "twomass_J": "2MASS/2MASS.J",
+    "twomass_H": "2MASS/2MASS.H",
+    "twomass_Ks": "2MASS/2MASS.Ks",
+    # "ukirt_wfcam_Brg",
+    # "ukirt_wfcam_H",
+    # "ukirt_wfcam_H2",
+    # "ukirt_wfcam_J",
+    # "ukirt_wfcam_K",
+    # "ukirt_wfcam_Y",
+    # "ukirt_wfcam_Z",
+    # "ukschmidt_bj",
+    # "vimos_B",
+    # "vimos_B_Q1",
+    # "vimos_B_Q2",
+    # "vimos_B_Q3",
+    # "vimos_B_Q4",
+    # "vimos_I",
+    # "vimos_I_Q1",
+    # "vimos_I_Q2",
+    # "vimos_I_Q3",
+    # "vimos_I_Q4",
+    # "vimos_R",
+    # "vimos_R_Q1",
+    # "vimos_R_Q2",
+    # "vimos_R_Q3",
+    # "vimos_R_Q4",
+    # "vimos_U",
+    # "vimos_U_Q1",
+    # "vimos_U_Q2",
+    # "vimos_U_Q3",
+    # "vimos_U_Q4",
+    # "vimos_V",
+    # "vimos_V_Q1",
+    # "vimos_V_Q2",
+    # "vimos_V_Q3",
+    # "vimos_V_Q4",
+    # "vlt_vimos_I",
+    # "vlt_vimos_z",
+    # "wfcam_H",
+    # "wfcam_J",
+    # "wfcam_K",
+    # "wfcam_Z",
+    # "wfpc2_f450w",
+    # "wfpc2_f555w",
+    # "wfpc2_f606w",
+    # "wfpc2_f675w",
+    # "wfpc2_f702w",
+    # "wfpc2_f814w",
+    "wise_w1": "WISE/WISE.W1",
+    "wise_w2": "WISE/WISE.W2",
+    "wise_w3": "WISE/WISE.W3",
+    "wise_w4": "WISE/WISE.W4",
+}
+for sdss_filter in "ugriz":
+    for i in range(7):
+        SVO_FILTER_ALIASES[f"sdss_{sdss_filter}{i:d}"] = f"SLOAN/SDSS.{sdss_filter}"
+
+def all_responses(facility=None, instrument=None, wavelength_min=None,
+                  wavelength_max=None):
+    """List response IDs available from the SVO Filter Profile Service.
+
     Parameters
     ----------
 
-    response_dir : str
-        path to directory containing responses
+    facility : str, optional
+        SVO facility name. If supplied, return filters for this facility.
 
-    check_validity : bool
-        if True, check the validity of the files
+    instrument : str, optional
+        SVO instrument name. Used only with ``facility``.
+
+    wavelength_min, wavelength_max : float or astropy.units.Quantity, optional
+        Effective wavelength range. Numeric values are interpreted as Angstroms.
+        Both values are required when ``facility`` is not supplied.
 
     Returns
     -------
 
     responses : list of str
-        response names for available bandpasses
-    
+        SVO filter IDs suitable for :meth:`ResponseDict.load_response`.
+
     Notes
     -----
 
-    Returns all base names of files with the suffix '.dat' in the
-    response_dir directory.
+    SVO does not provide a single inexpensive query for every filter. Specify
+    either a facility or an effective wavelength range.
+    """
+    if facility is not None:
+        filters = SvoFps.get_filter_list(facility=facility,
+                                         instrument=instrument)
+    elif ((wavelength_min is not None) and
+          (wavelength_max is not None)):
+        if not isinstance(wavelength_min, u.Quantity):
+            wavelength_min = wavelength_min * u.Angstrom
+        if not isinstance(wavelength_max, u.Quantity):
+            wavelength_max = wavelength_max * u.Angstrom
+        filters = SvoFps.get_filter_index(wavelength_min, wavelength_max)
+    else:
+        raise ValueError("specify facility or both wavelength_min and wavelength_max")
 
-    By default, response_dir is the "data/responses" directory within
-    the kcorrect Python distribution. 
-
-    If the user specifies response_dir and check_validity is False,
-    there is no guarantee that the response files in the specified
-    directory are valid!
-
-    If check_validity is True, the responses are also loaded into the
-    ResponseDict() singleton.
-"""
-    rdir = os.path.join(response_dir)
-    files = os.listdir(rdir)
-    responses = []
-    f = ResponseDict()
-    for filename in files:
-        if(os.path.isfile(os.path.join(rdir, filename))):
-            m = re.match('^(.*)\\.dat$', filename)
-            if(m is not None):
-                response = m.group(1)
-                valid = True
-                if(check_validity):
-                    try:
-                        f.load_response(response)
-                    except:
-                        valid = False
-                if(valid):
-                    responses.append(response)
-    return(responses)
+    return list(filters["filterID"])
 
 
 # Class to define a singleton
@@ -89,27 +365,40 @@ class ResponseDictSingleton(type):
 
 
 class ResponseDict(dict, metaclass=ResponseDictSingleton):
-    """Dictionary of all responses (singleton)
-"""
+    """Dictionary of all responses (singleton)"""
+
     def __init__(self):
         return
 
     def load_response(self, response=None, reload=False):
-        """Load response into dictionary
+        """Load a response from the SVO Filter Profile Service.
 
         Parameters
         ----------
 
         response : str
-            response to load
+            SVO filter ID, or one of the legacy kcorrect aliases in
+            ``SVO_FILTER_ALIASES``.
 
         reload : bool
             if True, reload the response if already in ResponseDict (default False)
-"""
+        """
+        if response is None:
+            raise ValueError("response must be an SVO filter ID or legacy alias")
         if((response in self) & (reload is False)):
             return
+
+        filter_id = SVO_FILTER_ALIASES.get(response)
+        if filter_id is None:
+            if "/" not in response:
+                raise ValueError(
+                    f"unknown response {response!r}; use an SVO filter ID "
+                    "or a legacy alias"
+                )
+            filter_id = response
+
         self[response] = Response()
-        self[response].fromdat(filename='{n}.dat'.format(n=response))
+        self[response].from_svo(filter_id=filter_id)
         return
 
 
@@ -133,6 +422,9 @@ class Response(object):
 
     filename : str
         source filename, or None
+
+    svo_filter_id : str
+        SVO filter ID, or None
 
     fwhm, fwhm_low, fwhm_hight : np.float32
         FWHM of response, with low and high wavelength limits (Angstroms)
@@ -195,6 +487,7 @@ class Response(object):
             self.wave = wave
             self.response = response
         self.filename = filename
+        self.svo_filter_id = None
         self.solar_sed = None
         self.solar_magnitude = None
         self.vega_sed = None
@@ -238,6 +531,38 @@ class Response(object):
                                            fill_value=0.)
         return
 
+    def from_svo(self, filter_id=None):
+        """Read a response from the SVO Filter Profile Service.
+
+        Parameters
+        ----------
+
+        filter_id : str
+            Filter ID in the SVO form ``facility/instrument.filter``.
+        """
+        if filter_id is None:
+            raise ValueError("filter_id must be specified")
+
+        data = SvoFps.get_transmission_data(filter_id)
+        wave = data["Wavelength"]
+        if getattr(wave, "unit", None) is not None:
+            wave = u.Quantity(wave).to_value(u.Angstrom)
+        else:
+            wave = np.asarray(wave)
+        response = np.asarray(data["Transmission"])
+
+        if len(wave) == 0:
+            raise ValueError(f"SVO returned no transmission data for {filter_id}")
+
+        isort = np.argsort(wave)
+        self.nwave = len(wave)
+        self.wave = np.asarray(wave[isort])
+        self.response = np.asarray(response[isort])
+        self.filename = None
+        self.svo_filter_id = filter_id
+        self._setup()
+        return
+
     def fromfits(self, filename=None, ext=1):
         """Read response from FITS files
 
@@ -256,6 +581,8 @@ class Response(object):
         isort = np.argsort(response['wave'])
         self.wave = response['wave'][isort]
         self.response = response['response'][isort]
+        self.filename = filename
+        self.svo_filter_id = None
         self._setup()
         return
 
@@ -271,14 +598,10 @@ class Response(object):
         Notes
         -----
 
-        If an absolute path, reads that. If not, looks relative
-        to KCORRECT_DIR/python/kcorrect/data/responses
-"""
-        if(os.path.isabs(filename)):
-            infilename = filename
-        else:
-            infilename = os.path.join(kcorrect.KCORRECT_DIR, 'data',
-                                      'responses', filename)
+        This method is retained for explicitly supplied custom response files.
+        Packaged response files are no longer used by kcorrect.
+        """
+        infilename = os.fspath(filename)
 
         if(os.path.exists(infilename) is False):
             raise ValueError("No response file: {f}".format(f=infilename))
@@ -287,6 +610,8 @@ class Response(object):
         isort = np.argsort(dat['lambda'])
         self.wave = dat['lambda'][isort]
         self.response = dat['pass'][isort]
+        self.filename = infilename
+        self.svo_filter_id = None
         self._setup()
         return
 

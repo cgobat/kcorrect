@@ -5,10 +5,7 @@
 Conditions of Use
 =========================
 
-Conditions of using the code released here are to send your email
-address to `mb144@nyu.edu <mailto:mb144@nyu.edu>`_, to cite
-`Blanton & Roweis (2007)
-<https://ui.adsabs.harvard.edu/abs/2007AJ....133..734B/abstract>`_
-and to specify the version tag (eg. ``5.0.0``) of the code used.
-
-
+This software is licensed under the BSD 3-clause license, and use of the software is
+permitted according to the conditions laid out therein.
+See the repository's `LICENSE file <https://github.com/blanton144/kcorrect/blob/main/LICENSE>`_
+for the full text of the license.

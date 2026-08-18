@@ -1,13 +1,13 @@
 [project]
 name = "kcorrect"
-license = {file = "LICENSE"}
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 readme = "README.md"
 authors = [
     { name = "Michael R. Blanton", email = "michael.blanton@gmail.com" }
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
-    "License :: OSI Approved :: BSD License",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",

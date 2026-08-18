@@ -401,7 +401,7 @@ class Response(object):
     svo_filter_id : str
         SVO filter ID, or None
 
-    fwhm, fwhm_low, fwhm_hight : np.float32
+    fwhm, fwhm_low, fwhm_high : np.float32
         FWHM of response, with low and high wavelength limits (Angstroms)
 
     interp : scipy.interpolate.interp1d object
@@ -450,8 +450,8 @@ class Response(object):
 
     The effective wavelength is defined as described in Blanton &
     Roweis (2007).
-
     """
+
     def __init__(self, filename=None, wave=None, response=None):
         if((wave is not None) &
            (response is not None)):
@@ -549,7 +549,7 @@ class Response(object):
 
         ext : str or int
             extension to read from
-"""
+        """
         response_hdulist = astropy.io.fits.open(filename)
         response = response_hdulist[ext].data[0]
         self.nwave = len(response['wave'])
@@ -601,7 +601,7 @@ class Response(object):
         
         clobber : bool
             whether to clobber the existing file or add an HDU
-"""
+        """
         out = np.zeros(1, self.response_dtype())
         out['wave'] = self.wave
         out['response'] = self.response
@@ -646,7 +646,7 @@ class Response(object):
         Assumes AB calibration.
 
         If the bandpass is outside the range of the solar model, 0 is returned.
-"""
+        """
         if(sed is None):
             if((wave is None) or (flux is None)):
                 raise ValueError("must specify sed, or wave and flux")
@@ -717,7 +717,7 @@ class Response(object):
         -----
 
         Sets attribute lambda_eff
-"""
+        """
         # Just use original grid; good enough.
         wave = self.wave
         response = self.response
@@ -750,7 +750,7 @@ class Response(object):
         reaches 50% maximum when starting from the high end.
 
         fwhm is (fwhm_high - fwhm_low)
-"""
+        """
         # Just use original grid; good enough.
         wave = self.wave.copy()
         iresponse = self.interp(wave)
@@ -790,7 +790,7 @@ class Response(object):
 
         If the response function is outside the model wavelength range,
         solar_magnitude is set to None.
-"""
+        """
         if(self.solar_sed is None):
             sunfile = os.path.join(kcorrect.KCORRECT_DIR, 'data', 'basel',
                                    'lcbsun.ori')
@@ -826,7 +826,7 @@ class Response(object):
 
         If the response function is outside the model wavelength range,
         vega2ab is set to None.
-"""
+        """
         if(self.vega_sed is None):
             vegafile = os.path.join(kcorrect.KCORRECT_DIR, 'data', 'basel',
                                     'lcbvega.ori')
